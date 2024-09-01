@@ -1,15 +1,5 @@
-import { BlogPosts } from 'app/components/posts'
+import { BlogPosts } from 'app/components/posts';
 import P5Sketch from '../components/P5Sketch';
-
-
-export default function Home() {
-  return (
-    <div>
-      <h1>My P5.js Sketch</h1>
-      <P5Sketch />
-    </div>
-  );
-}
 
 export default function Page() {
   return (
@@ -27,6 +17,9 @@ export default function Page() {
       <div className="my-8">
         <BlogPosts />
       </div>
+      <h1>My P5.js Sketch</h1>
+      <P5Sketch />
     </section>
-  )
+  );
 }
+
