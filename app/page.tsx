@@ -1,5 +1,11 @@
+
+import dynamic from 'next/dynamic';
 import { BlogPosts } from 'app/components/posts';
-import P5Sketch from '../components/P5Sketch';
+
+// Dynamically import the P5Sketch component
+const P5Sketch = dynamic(() => import('../components/P5Sketch'), {
+  ssr: false, // This ensures the component is only rendered on the client side
+});
 
 export default function Page() {
   return (
