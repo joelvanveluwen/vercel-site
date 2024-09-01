@@ -9,98 +9,157 @@ const P5Sketch = () => {
   useEffect(() => {
     const sketch = (p) => {
       const stringInput = "VAN VELUWEN";
+      const alternateStrings = [
+        "INVESTOR",
+        "ANALYST",
+        "DATA SCIENTIST",
+        "SOFTWARE DEVELOPER",
+        "TINKERER",
+	"AVID READER",
+	"DATA ENGINEER",
+	"AUSTRALIAN"
+      ];
       const repeatCount = 5; // Number of times to repeat the phrase per line
-      const stagger = 1; // How many words roll over to the next line
-      const fonts = [
-        "Courier New", "Lucida Console", "Monaco", "Consolas", "Andale Mono",
-        "DejaVu Sans Mono", "Source Code Pro", "Ubuntu Mono", "Roboto Mono",
-        "Droid Sans Mono", "PT Mono", "Inconsolata", "Oxygen Mono",
-        "Anonymous Pro", "Fira Mono", "Hack", "Menlo", "Space Mono",
-        "JetBrains Mono", "IBM Plex Mono", "Noto Mono", "Liberation Mono"
-      ]; // Extensive list of monospace fonts
+      const lines = 5; // Number of lines for formatting
+      const topPadding = 20; // Add padding at the top to prevent clipping
       let fontGrid = [];
-      const rows = 5; // Number of lines
-      const cols = repeatCount + 1; // Number of columns accounting for stagger
-      let transitionProgress = 0; // Track progress of transition
-      const transitionSpeed = 0.005; // Slower transition speed for a chill effect
-      const mouseMoveThreshold = 0.05; // 5% of mouse moves
+      const cols = repeatCount; // Set cols to repeatCount for consistency
+      const scrambleDuration = 4000; // Slower, chill scramble effect (4 seconds)
+      const transitionInterval = 10000; // 10 seconds between transitions
+      const scrambleStep = 100; // Slow down the scramble transition
+      let scrambling = false;
+      let specialWordIndex = -1; // Index for the special word
 
       p.setup = () => {
-        p.createCanvas(p.windowWidth * 0.9, p.windowHeight * 0.6); // Canvas size
-        p.textSize(p.width / (cols * 2)); // Dynamically set text size based on grid size
-        p.textAlign(p.LEFT, p.CENTER); // Align text left to start the rolling effect
+        p.textSize(p.width / (cols * 1.2)); // Significantly increase text size
+        const lineHeight = p.textSize() * 1.5; // Adjust line height for better spacing
+        p.createCanvas(p.windowWidth * 1.4, lineHeight * lines * 1.3 + topPadding); // Larger canvas with top padding
+        p.textAlign(p.LEFT, p.BASELINE); // Use BASELINE alignment to keep all text aligned
         p.background(0);
         initializeFonts();
         drawGrid();
       };
 
       const initializeFonts = () => {
-        for (let row = 0; row < rows; row++) {
-          fontGrid[row] = {
-            currentFont: randomFont(),
-            targetFont: randomFont(),
+        for (let line = 0; line < lines; line++) {
+          fontGrid[line] = {
+            isBold: Array(repeatCount).fill(false), // All VAN VELUWEN not bold
+            isSpecial: Array(repeatCount).fill(false)
           };
         }
-        transitionProgress = 0; // Reset transition progress
       };
 
-      const randomFont = () => {
-        return fonts[Math.floor(Math.random() * fonts.length)];
+      const randomCharacter = () => {
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
+        return characters.charAt(Math.floor(Math.random() * characters.length));
       };
 
-      const drawGrid = () => {
+      const smoothScramble = (currentText, targetText) => {
+        return currentText.split('').map((char, index) => {
+          if (Math.random() < 0.2) {
+            return randomCharacter();
+          } else {
+            return targetText.charAt(index);
+          }
+        }).join('');
+      };
+
+      const scrambleText = () => {
+        scrambling = true;
+        const scrambleStartTime = p.millis();
+
+        const interval = setInterval(() => {
+          if (p.millis() - scrambleStartTime > scrambleDuration) {
+            clearInterval(interval);
+            finalizeText();
+            scrambling = false;
+            return;
+          }
+
+          p.clear();
+          p.background(0);
+          const lineHeight = p.textSize() * 1.5;
+
+          for (let line = 0; line < lines; line++) {
+            let x = 0;
+            let y = line * lineHeight + topPadding; // Adjust y to include top padding
+
+            for (let i = 0; i < repeatCount; i++) {
+              const targetText = fontGrid[line].isSpecial[i]
+                ? alternateStrings[Math.floor(Math.random() * alternateStrings.length)]
+                : stringInput;
+
+              const scrambledText = smoothScramble(stringInput, targetText);
+
+              // Apply soft blur effect
+              const blurAmount = p.map(p.millis() - scrambleStartTime, 0, scrambleDuration, 5, 0);
+              p.drawingContext.filter = `blur(${blurAmount}px)`;
+
+              p.textFont(fontGrid[line].isSpecial[i] ? 'Helvetica-Bold' : 'Helvetica-Light');
+              p.textStyle(fontGrid[line].isSpecial[i] ? p.BOLD : p.NORMAL); // Bold only for alternateStrings
+              if (fontGrid[line].isSpecial[i]) {
+                p.fill(34, 139, 34); // Dark green color for special words
+              } else {
+                p.fill(255);
+              }
+              p.text(scrambledText, x, y);
+              x += p.textWidth(targetText + " "); // Adjust spacing based on word length
+            }
+          }
+        }, scrambleStep);
+      };
+
+      const finalizeText = () => {
         p.clear();
         p.background(0);
-        const cellWidth = p.width / cols;
-        const cellHeight = p.height / rows;
+        const lineHeight = p.textSize() * 1.5;
 
-        transitionProgress = Math.min(transitionProgress + transitionSpeed, 1);
+        for (let line = 0; line < lines; line++) {
+          let x = 0;
+          let y = line * lineHeight + topPadding; // Adjust y to include top padding
 
-        for (let row = 0; row < rows; row++) {
-          let lineText = "";
-          for (let col = 0; col < cols; col++) {
-            lineText += stringInput + " ";
-          }
-
-          const staggerOffset = -(row * stagger) * cellWidth;
-
-          // Use currentFont during transition
-          p.textFont(fontGrid[row].currentFont);
-          p.fill(255);
-          p.text(
-            lineText.trim(),
-            staggerOffset, // Apply the stagger offset
-            row * cellHeight + cellHeight / 2
-          );
-
-          // Gradually transition to the targetFont
-          if (transitionProgress >= 1) {
-            fontGrid[row].currentFont = fontGrid[row].targetFont;
-            fontGrid[row].targetFont = randomFont();
-            transitionProgress = 0; // Restart transition
+          for (let i = 0; i < repeatCount; i++) {
+            p.textFont(fontGrid[line].isSpecial[i] ? 'Helvetica-Bold' : 'Helvetica-Light');
+            p.textStyle(fontGrid[line].isSpecial[i] ? p.BOLD : p.NORMAL); // Bold only for alternateStrings
+            if (fontGrid[line].isSpecial[i]) {
+              const specialText = alternateStrings[Math.floor(Math.random() * alternateStrings.length)];
+              p.fill(34, 139, 34); // Dark green color for special words
+              p.text(specialText, x, y);
+              x += p.textWidth(specialText + " ");
+            } else {
+              p.fill(255);
+              p.text(stringInput, x, y);
+              x += p.textWidth(stringInput + " ");
+            }
           }
         }
-
-        // Continue drawing to update transition
-        requestAnimationFrame(drawGrid);
       };
 
-      let lastMouseMoveTime = 0;
-      const mouseMoveInterval = 200; // Minimum time in milliseconds between font scrambles
-
-      p.mouseMoved = () => {
-        const now = p.millis();
-        if (Math.random() < mouseMoveThreshold && (now - lastMouseMoveTime > mouseMoveInterval)) {
-          initializeFonts();
-          lastMouseMoveTime = now;
+      const updateBoldRandomly = () => {
+        if (!scrambling) {
+          for (let line = 0; line < lines; line++) {
+            fontGrid[line].isSpecial = Array(repeatCount).fill(false);
+          }
+          // Randomly choose one "VAN VELUWEN" to turn into an alternate string
+          specialWordIndex = Math.floor(Math.random() * repeatCount * lines);
+          fontGrid[Math.floor(specialWordIndex / repeatCount)].isSpecial[specialWordIndex % repeatCount] = true;
+          scrambleText();
         }
       };
 
       p.windowResized = () => {
-        p.resizeCanvas(p.windowWidth * 0.9, p.windowHeight * 0.6);
-        p.textSize(p.width / (cols * 2)); // Adjust text size on resize
+        p.textSize(p.width / (cols * 1.2)); // Significantly increase text size
+        const lineHeight = p.textSize() * 1.5; // Adjust line height for better spacing
+        p.resizeCanvas(p.windowWidth * 1.4, lineHeight * lines * 1.3 + topPadding); // Larger canvas with top padding
         drawGrid();
       };
+
+      const drawGrid = () => {
+        finalizeText(); // Draw the initial static text
+      };
+
+      // Trigger the special word update every 10 seconds with a scramble effect
+      setInterval(updateBoldRandomly, transitionInterval);
     };
 
     const p5Instance = new p5(sketch, sketchRef.current);
