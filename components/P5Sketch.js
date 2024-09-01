@@ -8,123 +8,98 @@ const P5Sketch = () => {
 
   useEffect(() => {
     const sketch = (p) => {
-      let fontGrid;
-      let h;
-      const stringInput = "Joel Van Veluwen";
-      const rows = 3; // Reduced from 4 for performance
-      const cols = 7; // Reduced from 10 for performance
-      const fonts = ["Arial", "Helvetica", "Verdana", "Tahoma", "Trebuchet MS", "Gill Sans", "Lucida Sans", "Century Gothic", "Futura", "Avenir"];
-      let sectors = [];
-      let lastMouseMoveTime = 0;
-      const debounceTime = 100; // Time in milliseconds to limit update frequency
+      const stringInput = "VAN VELUWEN";
+      const repeatCount = 5; // Number of times to repeat the phrase per line
+      const stagger = 1; // How many words roll over to the next line
+      const fonts = [
+        "Courier New", "Lucida Console", "Monaco", "Consolas", "Andale Mono",
+        "DejaVu Sans Mono", "Source Code Pro", "Ubuntu Mono", "Roboto Mono",
+        "Droid Sans Mono", "PT Mono", "Inconsolata", "Oxygen Mono",
+        "Anonymous Pro", "Fira Mono", "Hack", "Menlo", "Space Mono",
+        "JetBrains Mono", "IBM Plex Mono", "Noto Mono", "Liberation Mono"
+      ]; // Extensive list of monospace fonts
+      let fontGrid = [];
+      const rows = 5; // Number of lines
+      const cols = repeatCount + 1; // Number of columns accounting for stagger
+      let transitionProgress = 0; // Track progress of transition
+      const transitionSpeed = 0.005; // Slower transition speed for a chill effect
+      const mouseMoveThreshold = 0.05; // 5% of mouse moves
 
       p.setup = () => {
-        p.createCanvas(p.windowWidth * 0.8, p.windowHeight * 0.8); // Reduced canvas size for performance
-        scramble();
-        createSectors(); // Ensure this is called after scramble
+        p.createCanvas(p.windowWidth * 0.9, p.windowHeight * 0.6); // Canvas size
+        p.textSize(p.width / (cols * 2)); // Dynamically set text size based on grid size
+        p.textAlign(p.LEFT, p.CENTER); // Align text left to start the rolling effect
+        p.background(0);
+        initializeFonts();
+        drawGrid();
       };
 
-      const scramble = () => {
-        fontGrid = [];
-        for (let j = 0; j <= rows; j++) {
-          fontGrid[j] = [];
-          for (let i = 0; i < cols; i++) {
-            fontGrid[j].push(fonts[Math.floor(Math.random() * fonts.length)]);
-          }
-        }
-        getHeight();
-        drawGraphic();
-      };
-
-      const getHeight = () => {
-        let x = 0;
-        for (let i = 0; i < fonts.length; i++) {
-          p.textFont(fonts[i]);
-          p.textSize(p.windowWidth);
-          p.textSize((p.windowWidth * p.windowWidth) / p.textWidth(stringInput));
-          x = Math.max(x, p.textAscent());
-        }
-        h = x;
-      };
-
-      const createSectors = () => {
-        sectors = []; // Reset the sectors array
+      const initializeFonts = () => {
         for (let row = 0; row < rows; row++) {
-          sectors[row] = [];
-          for (let col = 0; col < cols; col++) {
-            sectors[row][col] = p.createGraphics(
-              Math.floor(p.windowWidth / cols),
-              Math.floor(h / rows)
-            );
-          }
+          fontGrid[row] = {
+            currentFont: randomFont(),
+            targetFont: randomFont(),
+          };
         }
+        transitionProgress = 0; // Reset transition progress
       };
 
-      const getSector = (row, col) => {
-        if (sectors[row] && sectors[row][col]) { // Check if sector exists
-          let out = sectors[row][col];
-          out.clear();
-          out.fill(255);
-          out.textFont(fontGrid[row][col]);
-          out.textSize(p.windowWidth);
-          out.textAlign(p.CENTER, p.CENTER);
-          out.textSize(
-            (p.windowWidth * p.windowWidth) / out.textWidth(stringInput)
-          );
-          out.text(
-            stringInput,
-            p.windowWidth / 2 - col * p.windowWidth / cols,
-            h / 2 - row * h / rows
-          );
-          return out.get();
-        }
-        return null;
+      const randomFont = () => {
+        return fonts[Math.floor(Math.random() * fonts.length)];
       };
+
+      const drawGrid = () => {
+        p.clear();
+        p.background(0);
+        const cellWidth = p.width / cols;
+        const cellHeight = p.height / rows;
+
+        transitionProgress = Math.min(transitionProgress + transitionSpeed, 1);
+
+        for (let row = 0; row < rows; row++) {
+          let lineText = "";
+          for (let col = 0; col < cols; col++) {
+            lineText += stringInput + " ";
+          }
+
+          const staggerOffset = -(row * stagger) * cellWidth;
+
+          // Use currentFont during transition
+          p.textFont(fontGrid[row].currentFont);
+          p.fill(255);
+          p.text(
+            lineText.trim(),
+            staggerOffset, // Apply the stagger offset
+            row * cellHeight + cellHeight / 2
+          );
+
+          // Gradually transition to the targetFont
+          if (transitionProgress >= 1) {
+            fontGrid[row].currentFont = fontGrid[row].targetFont;
+            fontGrid[row].targetFont = randomFont();
+            transitionProgress = 0; // Restart transition
+          }
+        }
+
+        // Continue drawing to update transition
+        requestAnimationFrame(drawGrid);
+      };
+
+      let lastMouseMoveTime = 0;
+      const mouseMoveInterval = 200; // Minimum time in milliseconds between font scrambles
 
       p.mouseMoved = () => {
-        if (p.millis() - lastMouseMoveTime > debounceTime) {
-          changeGridOnMouseMove();
-          lastMouseMoveTime = p.millis();
-        }
-      };
-
-      const changeGridOnMouseMove = () => {
-        const totalGrids = rows * cols;
-        const gridsToChange = Math.floor(totalGrids * 0.05);
-
-        for (let i = 0; i < gridsToChange; i++) {
-          setTimeout(() => {
-            const row = Math.floor(Math.random() * rows);
-            const col = Math.floor(Math.random() * cols);
-            fontGrid[row][col] = fonts[Math.floor(Math.random() * fonts.length)];
-            drawGraphic();
-          }, i * 50); // Staggered effect by 50ms
+        const now = p.millis();
+        if (Math.random() < mouseMoveThreshold && (now - lastMouseMoveTime > mouseMoveInterval)) {
+          initializeFonts();
+          lastMouseMoveTime = now;
         }
       };
 
       p.windowResized = () => {
-        p.resizeCanvas(p.windowWidth * 0.8, p.windowHeight * 0.8); // Keep the canvas size reduced
-        scramble();
-        createSectors(); // Re-create sectors after resize
-      };
-
-      const drawGraphic = () => {
-        p.clear();
-        p.background(0);
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < cols; col++) {
-            const sector = getSector(row, col);
-            if (sector) { // Only draw if sector exists
-              p.image(
-                sector,
-                col * p.windowWidth / cols,
-                p.windowHeight / 2 - h / 2 + row * h / rows,
-                p.windowWidth / cols,
-                h / rows
-              );
-            }
-          }
-        }
+        p.resizeCanvas(p.windowWidth * 0.9, p.windowHeight * 0.6);
+        p.textSize(p.width / (cols * 2)); // Adjust text size on resize
+        drawGrid();
       };
     };
 

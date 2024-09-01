@@ -10,6 +10,7 @@ const P5Sketch = dynamic(() => import('../components/P5Sketch'), {
 export default function Page() {
   return (
     <section>
+      <P5Sketch />
       <h1 className="mb-8 text-2xl font-semibold tracking-tighter">
         My Portfolio
       </h1>
@@ -23,8 +24,6 @@ export default function Page() {
       <div className="my-8">
         <BlogPosts />
       </div>
-      <h1>My P5.js Sketch</h1>
-      <P5Sketch />
     </section>
   );
 }
